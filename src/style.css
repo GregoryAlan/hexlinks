@@ -1,0 +1,164 @@
+@font-face {
+  font-family: 'Rye';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/rye.woff2') format('woff2');
+}
+
+:root {
+  --ink: #181512;
+  --paper: #e9dcbe;
+  --paper-deep: #ddcda6;
+  --red: #b5342c;
+  --green: #3e6b48;
+  --gold: #d9a441;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overscroll-behavior: none;
+  background: var(--paper-deep);
+  color: var(--ink);
+  font-family: 'Rye', 'Georgia', serif;
+}
+
+#app {
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+#canvas-wrap {
+  position: relative;
+  width: min(100vw, 100dvh, 800px);
+  height: min(100vw, 100dvh, 800px);
+}
+
+#game {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#hud {
+  position: absolute;
+  top: 3.2%;
+  left: 4.5%;
+  right: 4.5%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: clamp(11px, 2.8vmin, 19px);
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  color: var(--ink);
+}
+
+#hud-hearts {
+  color: var(--red);
+  letter-spacing: 2px;
+}
+
+#overlay-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Flash-sheet card: parchment with a double-rule frame. */
+.overlay {
+  pointer-events: auto;
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+  border-radius: 2px;
+  padding: clamp(18px, 4.5vmin, 34px);
+  max-width: 84%;
+  max-height: 86%;
+  overflow-y: auto;
+  text-align: center;
+  box-shadow: 6px 7px 0 rgb(24 21 18 / 30%);
+  animation: overlay-pop 180ms ease-out;
+}
+
+@keyframes overlay-pop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.overlay h1 {
+  font-size: clamp(19px, 4.6vmin, 30px);
+  font-weight: 400;
+  margin-bottom: 0.45em;
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.overlay p {
+  font-size: clamp(13px, 3.2vmin, 18px);
+  margin-bottom: 0.5em;
+}
+
+.overlay .scorecard {
+  font-size: clamp(16px, 4vmin, 24px);
+  letter-spacing: 1px;
+  margin: 0.4em 0;
+  line-height: 1.5;
+  font-family: 'Georgia', serif;
+}
+
+.overlay button {
+  font-family: inherit;
+  font-size: clamp(14px, 3.4vmin, 20px);
+  background: var(--green);
+  color: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 3px;
+  padding: 0.45em 1.1em;
+  margin: 0.35em 0.3em 0;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 3px 4px 0 rgb(24 21 18 / 40%);
+}
+
+.overlay button:active {
+  transform: translate(2px, 3px);
+  box-shadow: none;
+}
+
+.overlay button.secondary {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.overlay .muted {
+  opacity: 0.7;
+  font-size: clamp(11px, 2.7vmin, 15px);
+  font-family: 'Georgia', serif;
+}

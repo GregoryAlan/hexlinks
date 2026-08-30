@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden replay > scripted shots on the fixture stage reproduce exact positions 1`] = `
+{
+  "checkpoints": [
+    {
+      "sleeping": true,
+      "x": 1844.41,
+      "y": 1560.29,
+    },
+    {
+      "sleeping": true,
+      "x": 674.39,
+      "y": 1780.29,
+    },
+    {
+      "sleeping": true,
+      "x": 1081.06,
+      "y": 1780.29,
+    },
+  ],
+  "events": [
+    "rest",
+    "rest",
+    "rest",
+    "hit:dummy",
+    "rest",
+  ],
+}
+`;
