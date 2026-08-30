@@ -1,18 +1,23 @@
+/* Overgrown Estate house type: Fredericka the Great display, Georgia body.
+   Self-hosted (Vite rewrites the url for the './' base — a root-relative
+   /fonts/ path 404s on the Pages subpath). */
 @font-face {
-  font-family: 'Rye';
+  font-family: 'Fredericka the Great';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/rye.woff2') format('woff2');
+  src: url('./fonts/fredericka.woff2') format('woff2');
 }
 
+/* Overgrown Estate anchors (style canvas): ink on bone, one dried-blood red
+   accent per scene. Full palette pass lands with the P1 art prototype. */
 :root {
-  --ink: #181512;
-  --paper: #e9dcbe;
-  --paper-deep: #ddcda6;
-  --red: #b5342c;
-  --green: #3e6b48;
-  --gold: #d9a441;
+  --ink: #2b2822;
+  --paper: #efeade;
+  --paper-deep: #e3dcc9;
+  --red: #7d2a24;
+  --green: #5a6b52;
+  --gold: #b3a06a;
 }
 
 * {
@@ -27,7 +32,7 @@ body {
   overscroll-behavior: none;
   background: var(--paper-deep);
   color: var(--ink);
-  font-family: 'Rye', 'Georgia', serif;
+  font-family: 'Fredericka the Great', 'Georgia', serif;
 }
 
 #app {

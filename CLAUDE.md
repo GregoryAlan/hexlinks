@@ -6,14 +6,16 @@ A golf-RPG where the dungeon is a golf course. Isometric 2.5D hex overworld with
 
 ## Status
 
-- **Current milestone: P0 (scaffold) — not started.** Nothing exists yet but this file, PLAN.md, and BOOTSTRAP.md.
+- **P0 (scaffold) complete — 2026-08-29.** Vite+vitest scaffold; verbatim ink-links modules (rng/audio/effects/roughCache/style shell); `stage/physicsStage.ts` ported behind StageSpec/StageEvents with golden replay test; stack-based `scenes/sceneManager.ts` (deferred push/pop, resume results, opaque skipping) with headless tests; home-base stub + placeholder scene; DOM only via `ui/overlay.ts`. 9 tests green; CI deploys to https://gregoryalan.github.io/hexlinks/ (Pages had to be enabled once via `gh api repos/.../pages -X POST -f build_type=workflow` — the workflow token can't create the site).
+- Playable: stub home base (title → New Run → placeholder → Back) on the live URL.
+- **Next: P1 — walkable iso hex overworld.** Start with the art-risk prototype (rough.js iso prisms + fog legibility, flat-fill fallback); check the style canvas for edits Greg saved.
 - Update this Status section at the end of every build session: milestone reached, what's playable, next step.
 
 ## Session startup
 
 1. Read `PLAN.md` (at minimum: Locked decisions, Architecture, the current milestone's entry, Verification).
-2. Read `BOOTSTRAP.md` for the P0 checklist and the exact ink-links reuse map. Delete BOOTSTRAP.md once P0 is complete and fold anything still relevant here.
-3. Reference implementation lives at `~/code/ink-links` — read files there freely; never modify that repo from here.
+2. Reference implementation lives at `~/code/ink-links` — read files there freely; never modify that repo from here. Known-good constants worth cribbing in later phases live in its `src/config.ts`: `BALLISTICS` (launchSpeed 36.0, gravity 0.26, airDrag 0.01 — measured matter outcomes, reverse-solved by its `tests/ballistics.test.ts`) and the `GEN` gate/retry numbers. Ported here already: PHYSICS, SHOT, SURFACES, BALL (mass pin `1.17559968`), maxDpr 2.
+3. E2E smoke: `npm run dev`, then `SCRATCH=<scratchpad> node scripts/e2e-smoke.mjs` (playwright-core, uses the cached Chromium; override with `CHROMIUM=<path>`).
 
 ## Project rules
 
