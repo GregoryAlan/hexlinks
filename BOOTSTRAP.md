@@ -60,4 +60,4 @@ From ink-links `src/config.ts`: `PHYSICS` (stepMs 16, maxFrameMs 100), `SHOT` (f
 
 ## First-session suggestion
 
-P0 is small (S). If it goes fast, roll straight into P1 (iso hex overworld) — the art-risk prototype (rough.js iso prisms + fog legibility) is the thing most worth seeing early. Consider kicking off the `/design` style canvas at the start of the session so it's ready to compare against the P1 prototype.
+P0 is small (S). If it goes fast, roll straight into P1 (iso hex overworld) — the art-risk prototype (rough.js iso prisms + fog legibility) is the thing most worth seeing early. The art direction is already chosen and the style canvas exists (see PLAN.md "Art direction" under Locked decisions — the P1 prototype renders toward that board; check the canvas for any edits Greg saved since).
