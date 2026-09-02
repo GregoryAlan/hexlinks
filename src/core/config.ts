@@ -85,3 +85,128 @@ export const COLORS = {
 } as const;
 
 export const GAME_NAME = 'Hexlinks';
+
+// ---- P1: iso hex overworld ---------------------------------------------------
+
+/** Hex grid + isometric projection. Pointy-top axial grid (holes run
+ *  vertically, portrait). The "iso" view is the flat top-down grid with its y
+ *  axis squashed and elevation lifting cells straight up the screen — a
+ *  dimetric look that keeps every top face the same hexagon (one cached
+ *  drawable per terrain/elevation silhouette) and makes painter's order a
+ *  plain row sort. Numbers match the style board's prism sketches. */
+export const HEX = {
+  /** Circumradius in flat-world px. Board prisms are 72.8 px wide →
+   *  size 42 (width = size·√3). */
+  size: 42,
+  /** Screen-y per flat-world-y. Board: 47 px tall hex for a 72.8 px wide one
+   *  → 0.56. Anything much flatter loses the side faces; much taller reads
+   *  top-down. */
+  ySquash: 0.56,
+  /** Screen px of lift per elevation level. Board raises the green ~18 px
+   *  for what reads as a one-level tier; 16 keeps a 6-level cliff (96 px) under
+   *  three rows of overlap. [T] */
+  elevPx: 16,
+  maxElevation: 6,
+} as const;
+
+/** Iso prism art (style board "Overgrown Estate"). Ink stays 0.6–1.6 px at
+ *  zoom 1; fills stay pale; terrain reads by texture first. */
+export const HEX_ART = {
+  /** Top-face outline. */
+  inkWidth: 1.3,
+  /** Side-face outline + motif strokes. */
+  sideInkWidth: 1.1,
+  scratchWidth: 0.7,
+  scratchAlpha: 0.55,
+  /** rough.js roughness for outlines — low: the board's linework is steady,
+   *  just hand-drawn. */
+  roughness: 0.7,
+  /** Backing px per flat-world px in the bake. 2 keeps 1.25× zoom on a 2×
+   *  DPR phone crisp; bake canvases are ~1.8k px square for a par-3. */
+  bakeScale: 2,
+  /** Fogged cells: the whole prism is knocked back toward the paper by this
+   *  alpha of paper wash, then scribble mist goes over the top. Board shows
+   *  fogged prisms at ~0.3 opacity. */
+  fogWashAlpha: 0.6,
+  fogMistAlpha: 0.32,
+  /** Mist scribbles: every fogged cell gets one long sweep, and a second
+   *  with this probability — sparse, so the macro silhouettes stay legible
+   *  underneath (the prototype's 3-per-cell read as a brick wall). */
+  fogMistSecondChance: 0.35,
+  /** Side-face height (px) shown on map-edge cells with no neighbour under
+   *  the edge — the "board" lip that makes ground-level tiles read as tiles. */
+  edgeLipPx: 10,
+} as const;
+
+/** Overworld camera: zoom = screen CSS px per flat-world px. */
+export const CAMERA = {
+  minZoom: 0.5,
+  maxZoom: 1.25,
+  /** Exp-smoothing follow rate (per second). */
+  followRate: 6,
+  /** World-bounds padding so the map edge can reach the viewport center. */
+  padPx: 120,
+} as const;
+
+/** Gesture recognition (logical CSS px / ms). */
+export const GESTURE = {
+  /** Movement under this is a tap, not a pan. */
+  tapSlopPx: 8,
+  tapMaxMs: 350,
+} as const;
+
+/** Traversal costs (PLAN.md §Hex engine / §Cursed fog). A* minimizes the sum
+ *  of per-hex-entered costs. */
+export const TERRAIN_MOVE_COST = {
+  tee: 1,
+  fairway: 1,
+  cartPath: 1,
+  green: 1,
+  rough: 2,
+  sand: 2,
+  deepRough: 3,
+  trees: 3,
+  water: Infinity,
+  oob: Infinity,
+} as const;
+
+export const MOVE = {
+  /** Extra cost per elevation level climbed (descending is free). [T] */
+  climbCostPerLevel: 1,
+  /** Steps of more than this many levels (either direction) are cliffs —
+   *  unwalkable, so ridges shape routes. [T] */
+  maxStepLevels: 2,
+  /** Entering an un-cleared (fogged) hex: cost multiplier. [T] */
+  fogCostMult: 2,
+  /** Fog cleared around the tee at hole start (hex radius). [T] */
+  teeRevealRadius: 2,
+  /** Walk animation: ms per hex entered (scaled by terrain cost a bit). */
+  walkMsPerHex: 180,
+} as const;
+
+/** Terrain palette straight off the style board's swatches (pale fills,
+ *  texture carries the read). Side faces are one warm paper-shadow tone. */
+export const TERRAIN_COLORS = {
+  tee: '#c3cbb0',
+  fairway: '#b9c2a4',
+  rough: '#a8a58c',
+  deepRough: '#918e74',
+  sand: '#dccda6',
+  water: '#b7c2c4',
+  trees: '#8a9a7e',
+  green: '#97a982',
+  cartPath: '#d8d2bf',
+  oob: '#e7e1d0',
+} as const;
+
+export const ISO_COLORS = {
+  side: '#ddd5c0',
+  /** Shadowed (south-east) side face, one step darker so the prism turns. */
+  sideDark: '#cfc6ae',
+  canopy: '#7f9070',
+  groundPaper: '#e7e1d0',
+  pathDot: '#6b6455',
+  ball: '#f7f3e8',
+  fogMist: '#2b2822',
+  pathMark: '#7d2a24',
+} as const;

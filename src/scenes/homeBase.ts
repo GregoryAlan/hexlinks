@@ -1,4 +1,5 @@
 import { COLORS, GAME_NAME } from '../core/config';
+import { tutorialMap } from '../data/tutorial';
 import type {
   Scene,
   SceneContext,
@@ -27,8 +28,8 @@ export class HomeBaseScene implements Scene {
           .querySelector('[data-action="new-run"]')!
           .addEventListener('click', () => {
             this.ctx.overlay.clear();
-            // P1 replaces this with the real overworld request.
-            this.ctx.push({ kind: 'overworld', hole: null, run: null });
+            // P6 replaces this with the run launcher (seed + Hex pick).
+            this.ctx.push({ kind: 'overworld', hole: { map: tutorialMap() }, run: null });
           });
       },
     );

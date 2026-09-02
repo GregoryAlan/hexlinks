@@ -22,17 +22,23 @@ export type SceneResult =
   | { kind: 'reward' }
   | { kind: 'runSummary'; result: unknown };
 
-export interface PointerEvt {
-  type: 'down' | 'move' | 'up' | 'cancel';
-  /** Logical coordinates (camera/scene space is the scene's business). */
-  pos: Vec2;
-}
+export type PointerEvt =
+  | {
+      type: 'down' | 'move' | 'up' | 'cancel';
+      /** Logical coordinates (camera/scene space is the scene's business). */
+      pos: Vec2;
+      /** Pointer id for multi-touch gestures (absent in headless tests). */
+      id?: number;
+    }
+  | { type: 'wheel'; pos: Vec2; delta: number };
 
 /** The one DOM seam scenes may touch (implemented by ui/overlay.ts; stubbed
  *  in headless tests). */
 export interface OverlayHost {
   show(html: string, wire?: (root: HTMLElement) => void): void;
   clear(): void;
+  /** Non-modal corner HUD text (scorecard, hints). Empty string hides it. */
+  hud(html: string): void;
 }
 
 export interface SceneContext {

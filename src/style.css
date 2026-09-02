@@ -44,10 +44,12 @@ body {
     env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
+/* Portrait everywhere (PLAN.md): a phone-shaped column, 1:2, capped so a
+   desktop window shows it at roughly phone scale. */
 #canvas-wrap {
   position: relative;
-  width: min(100vw, 100dvh, 800px);
-  height: min(100vw, 100dvh, 800px);
+  width: min(100vw, 50dvh, 480px);
+  height: min(200vw, 100dvh, 960px);
 }
 
 #game {
