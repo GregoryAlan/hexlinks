@@ -5,4 +5,8 @@ export const DEBUG = {
   drawOrder: false,
   /** Draw the A* path cost on the walk preview. */
   pathCost: false,
+  /** Fog layer without mist strokes (isolating wash artifacts). */
+  noMist: false,
+  /** Fog layer without the paper wash (mist only). */
+  noWash: false,
 };

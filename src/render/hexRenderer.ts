@@ -134,9 +134,28 @@ export class HexRenderer {
   bakeFog(cleared: ReadonlySet<HexKey>): LayerBake {
     const layer = this.makeLayer();
     const { g, rc } = this.enterLayer(layer);
+    // Pass 1 — coverage. Silhouettes overlap where a side face hangs over the
+    // neighbour's top, so they are unioned at full alpha and the whole layer
+    // is scaled to the wash alpha once (per-cell alpha double-washed those
+    // strips into pale diagonal bands).
     for (const cell of this.order) {
       if (cleared.has(hexKey(cell.coord))) this.punchCell(g, cell);
-      else this.drawFogCell(g, rc, cell);
+      else if (!DEBUG.noWash) fillPoly(g, this.sil.get(hexKey(cell.coord))!, COLORS.paper);
+    }
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'destination-in';
+    g.globalAlpha = HEX_ART.fogWashAlpha;
+    g.fillStyle = '#000';
+    g.fillRect(0, 0, layer.canvas.width, layer.canvas.height);
+    g.restore();
+    // Pass 2 — mist, with cleared cells in front still punching what creeps
+    // over them (the wash under a cleared cell is already gone).
+    if (!DEBUG.noMist) {
+      for (const cell of this.order) {
+        if (cleared.has(hexKey(cell.coord))) this.punchCell(g, cell);
+        else for (const d of this.art.get(hexKey(cell.coord))!.fog) rc.draw(d);
+      }
     }
     return layer;
   }
@@ -165,10 +184,12 @@ export class HexRenderer {
 
   drawFogCell(g: CanvasRenderingContext2D, rc: RoughCanvas, cell: HexCell): void {
     const a = this.art.get(hexKey(cell.coord))!;
-    g.globalAlpha = HEX_ART.fogWashAlpha;
-    fillPoly(g, this.sil.get(hexKey(cell.coord))!, COLORS.paper);
-    g.globalAlpha = 1;
-    for (const d of a.fog) rc.draw(d);
+    if (!DEBUG.noWash) {
+      g.globalAlpha = HEX_ART.fogWashAlpha;
+      fillPoly(g, this.sil.get(hexKey(cell.coord))!, COLORS.paper);
+      g.globalAlpha = 1;
+    }
+    if (!DEBUG.noMist) for (const d of a.fog) rc.draw(d);
   }
 
   punchCell(g: CanvasRenderingContext2D, cell: HexCell): void {

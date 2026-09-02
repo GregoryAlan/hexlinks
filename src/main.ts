@@ -44,6 +44,8 @@ const params = new URLSearchParams(location.search);
 const debug = (params.get('debug') ?? '').split(',');
 DEBUG.drawOrder = debug.includes('order');
 DEBUG.pathCost = debug.includes('cost');
+DEBUG.noMist = debug.includes('nomist');
+DEBUG.noWash = debug.includes('nowash');
 const faceStyle = (params.get('style') as FaceStyle | null) ?? 'flat';
 const proto = params.get('proto');
 const fogOff = params.get('fog') === 'off';
