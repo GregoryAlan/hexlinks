@@ -5,18 +5,27 @@ import type { OverlayHost } from '../scenes/sceneManager';
  *  risk #4). One overlay at a time. */
 export function createOverlayHost(rootId = 'overlay-root', hudId = 'hud'): OverlayHost {
   const root = () => document.getElementById(rootId)!;
+  const drop = (cls: string) => root().querySelectorAll(`.${cls}`).forEach((n) => n.remove());
   return {
     show(html, wire) {
-      const r = root();
-      r.innerHTML = '';
+      drop('overlay');
       const div = document.createElement('div');
       div.className = 'overlay';
       div.innerHTML = html;
-      r.appendChild(div);
+      root().appendChild(div);
       wire?.(div);
     },
     clear() {
-      root().innerHTML = '';
+      drop('overlay');
+    },
+    panel(html, wire) {
+      drop('panel');
+      if (!html) return;
+      const div = document.createElement('div');
+      div.className = 'panel';
+      div.innerHTML = html;
+      root().appendChild(div);
+      wire?.(div);
     },
     hud(html) {
       const h = document.getElementById(hudId);

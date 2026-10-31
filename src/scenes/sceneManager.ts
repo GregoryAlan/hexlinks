@@ -39,6 +39,9 @@ export interface OverlayHost {
   clear(): void;
   /** Non-modal corner HUD text (scorecard, hints). Empty string hides it. */
   hud(html: string): void;
+  /** Bottom-docked, non-modal control strip (club picker, build palette)
+   *  that coexists with map taps and with a modal card. '' removes it. */
+  panel(html: string, wire?: (root: HTMLElement) => void): void;
 }
 
 export interface SceneContext {

@@ -13,6 +13,8 @@ export class HomeBaseScene implements Scene {
   readonly opaque = true;
   private ctx!: SceneContext;
 
+  constructor(private seed?: string) {}
+
   enter(ctx: SceneContext): void {
     this.ctx = ctx;
     this.showMenu();
@@ -29,7 +31,7 @@ export class HomeBaseScene implements Scene {
           .addEventListener('click', () => {
             this.ctx.overlay.clear();
             // P6 replaces this with the run launcher (seed + Hex pick).
-            this.ctx.push({ kind: 'overworld', hole: { map: tutorialMap() }, run: null });
+            this.ctx.push({ kind: 'overworld', hole: { map: tutorialMap(), seed: this.seed }, run: null });
           });
       },
     );

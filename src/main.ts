@@ -49,12 +49,13 @@ DEBUG.noWash = debug.includes('nowash');
 const faceStyle = (params.get('style') as FaceStyle | null) ?? 'flat';
 const proto = params.get('proto');
 const fogOff = params.get('fog') === 'off';
+const seed = params.get('seed') ?? undefined;
 
 // ---- scenes ----------------------------------------------------------------
 function makeScene(req: SceneRequest) {
   switch (req.kind) {
     case 'homeBase':
-      return new HomeBaseScene();
+      return new HomeBaseScene(seed);
     case 'overworld':
       return new OverworldScene(req.hole as OverworldRequest);
     default:
@@ -64,9 +65,9 @@ function makeScene(req: SceneRequest) {
 
 const manager = new SceneManager(makeScene, createOverlayHost());
 if (proto === 'stair') {
-  manager.push({ kind: 'overworld', hole: { map: stairStepMap(), faceStyle, fogOff, zoom: Number(params.get('zoom') ?? 1) }, run: null });
+  manager.push({ kind: 'overworld', hole: { map: stairStepMap(), faceStyle, fogOff, seed, zoom: Number(params.get('zoom') ?? 1) }, run: null });
 } else if (proto === 'hole') {
-  manager.push({ kind: 'overworld', hole: { map: tutorialMap(), faceStyle, fogOff, zoom: Number(params.get('zoom') ?? 0.9) }, run: null });
+  manager.push({ kind: 'overworld', hole: { map: tutorialMap(), faceStyle, fogOff, seed, zoom: Number(params.get('zoom') ?? 0.9) }, run: null });
 } else {
   manager.push({ kind: 'homeBase' });
 }

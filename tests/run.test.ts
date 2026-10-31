@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { MOVE } from '../src/core/config';
+import { CLUBS } from '../src/core/config';
 import { makeRng } from '../src/core/rng';
+import { clubAllowed, clubDef, startBag } from '../src/data/clubs';
 import { tutorialMap } from '../src/data/tutorial';
 import { hexDistance, hexKey } from '../src/hex/coords';
 import { cellAt } from '../src/hex/map';
-import { resolveShot } from '../src/shot/ballistics';
-import { NO_SPIN, NO_WIND, toRecord } from '../src/shot/types';
+import { distHexes, fullCarry, lieOf, powerFor, resolveShot } from '../src/shot/ballistics';
+import { NO_SPIN, NO_WIND, toRecord, type ClubId } from '../src/shot/types';
 import { applyShot, beginRun, clearHexes, shotSeed, stepParty } from '../src/state/run';
 
 /** Pure-reducer tests for RunState. */
@@ -69,5 +71,40 @@ describe('run state reducers', () => {
     const t = cellAt(map, s1.ballHex)!.terrain;
     expect(['water', 'oob']).not.toContain(t);
     if (o.terminal === 'water' || o.terminal === 'oob') expect(s1.strokes).toBe(2);
+  });
+});
+
+describe('the tutorial hole under perfect play', () => {
+  const map = tutorialMap();
+
+  /** Greedy caddy: putter on the green, otherwise the longest allowed club
+   *  that reaches no further than the pin, aimed at the pin. */
+  function pickClub(bag: ClubId[], dist: number, lie: ReturnType<typeof lieOf>): ClubId {
+    if (lie === 'green' && dist <= CLUBS.putter.maxCarry) return 'putter';
+    const allowed = bag.filter((id) => id !== 'putter' && clubAllowed(id, lie));
+    const fits = allowed.filter((id) => fullCarry(clubDef(id), 'standard', lie) >= dist);
+    const pool = fits.length ? fits : allowed;
+    return pool.sort((a, b) => fullCarry(clubDef(a), 'standard', lie) - fullCarry(clubDef(b), 'standard', lie))[0];
+  }
+
+  it('holes out within par + 3 for a sweep of seeds', () => {
+    for (const seed of ['a', 'b', 'c', 'd', 'e', 'smoke', 'qualifying']) {
+      let s = beginRun(seed, map);
+      let guard = 0;
+      while (!s.holed && guard++ < 12) {
+        const lie = lieOf(map, s.ballHex);
+        const dist = distHexes(s.ballHex, map.pin);
+        const club = pickClub(startBag(), dist, lie);
+        const power = powerFor(dist, clubDef(club), 'standard', lie);
+        const o = resolveShot(
+          { from: s.ballHex, target: map.pin, club, shape: 'standard', spin: NO_SPIN, swing: { power, accuracy: 0 }, wind: NO_WIND },
+          map,
+          makeRng(shotSeed(s)),
+        );
+        s = applyShot(s, map, toRecord(o));
+      }
+      expect(s.holed, `seed ${seed} not holed in ${s.strokes}`).toBe(true);
+      expect(s.strokes, `seed ${seed}`).toBeLessThanOrEqual(map.par + 3);
+    }
   });
 });

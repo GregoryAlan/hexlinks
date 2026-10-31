@@ -68,3 +68,48 @@ describe('gestures', () => {
     expect(g.pointerCount).toBe(0);
   });
 });
+
+describe('captured drag', () => {
+  function capHarness(capture: (p: { x: number; y: number }) => boolean) {
+    const log: string[] = [];
+    const g = new GestureRecognizer({
+      shouldCapture: capture,
+      onDragStart: (p) => log.push(`dragStart ${p.x},${p.y}`),
+      onDrag: (p) => log.push(`drag ${p.x},${p.y}`),
+      onDragEnd: (p) => log.push(`dragEnd ${p.x},${p.y}`),
+      onTap: (p) => log.push(`tap ${p.x},${p.y}`),
+      onPan: (d) => log.push(`pan ${d.x},${d.y}`),
+      onPanEnd: () => log.push('panEnd'),
+    });
+    return { g, log };
+  }
+
+  it('a down on a capturable spot drags and never pans or taps', () => {
+    const { g, log } = capHarness((p) => p.x < 50);
+    g.handle({ type: 'down', pos: { x: 10, y: 10 }, id: 1 }, 0);
+    g.handle({ type: 'move', pos: { x: 40, y: 10 }, id: 1 }, 10);
+    g.handle({ type: 'move', pos: { x: 90, y: 30 }, id: 1 }, 20);
+    g.handle({ type: 'up', pos: { x: 90, y: 30 }, id: 1 }, 30);
+    expect(log).toEqual(['dragStart 10,10', 'drag 40,10', 'drag 90,30', 'dragEnd 90,30']);
+    expect(g.pointerCount).toBe(0);
+  });
+
+  it('elsewhere the usual tap and pan still apply', () => {
+    const { g, log } = capHarness((p) => p.x < 50);
+    g.handle({ type: 'down', pos: { x: 100, y: 10 }, id: 1 }, 0);
+    g.handle({ type: 'up', pos: { x: 100, y: 10 }, id: 1 }, 50);
+    g.handle({ type: 'down', pos: { x: 100, y: 10 }, id: 1 }, 100);
+    g.handle({ type: 'move', pos: { x: 130, y: 10 }, id: 1 }, 110);
+    g.handle({ type: 'up', pos: { x: 130, y: 10 }, id: 1 }, 120);
+    expect(log).toEqual(['tap 100,10', 'pan 30,0', 'panEnd']);
+  });
+
+  it('extra fingers during a captured drag are ignored; cancel ends it', () => {
+    const { g, log } = capHarness(() => true);
+    g.handle({ type: 'down', pos: { x: 0, y: 0 }, id: 1 }, 0);
+    g.handle({ type: 'down', pos: { x: 50, y: 50 }, id: 2 }, 5);
+    g.handle({ type: 'move', pos: { x: 60, y: 60 }, id: 2 }, 10);
+    g.handle({ type: 'cancel', pos: { x: 5, y: 5 }, id: 1 }, 20);
+    expect(log).toEqual(['dragStart 0,0', 'dragEnd 5,5']);
+  });
+});

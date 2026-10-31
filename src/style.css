@@ -169,3 +169,68 @@ body {
   font-size: clamp(11px, 2.7vmin, 15px);
   font-family: 'Georgia', serif;
 }
+
+/* Bottom-docked control strip (club picker, build palette). Non-modal: the
+   map above it still takes taps. */
+.panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: auto;
+  background: rgb(239 234 222 / 92%);
+  border-top: 3px solid var(--ink);
+  padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: 'Georgia', serif;
+}
+
+.panel .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+}
+
+.panel button {
+  font-family: inherit;
+  font-size: clamp(11px, 2.9vmin, 14px);
+  padding: 4px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  letter-spacing: 0.3px;
+}
+
+.panel button.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.panel button.primary {
+  background: var(--green);
+  color: var(--paper);
+  font-family: 'Fredericka the Great', 'Georgia', serif;
+  text-transform: uppercase;
+  padding: 5px 14px;
+}
+
+.panel button.danger {
+  background: var(--red);
+  color: var(--paper);
+}
+
+.panel button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.panel .hint {
+  font-size: clamp(10px, 2.6vmin, 13px);
+  opacity: 0.78;
+  text-align: center;
+}

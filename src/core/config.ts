@@ -314,3 +314,23 @@ export const BALLISTICS = {
    *  magnitude is rolled in [0, maxWind]). */
   maxWind: 0.25,
 } as const;
+
+/** Aim mode UI. */
+export const AIM = {
+  /** Screen px within which a pointer-down grabs the target marker instead
+   *  of panning. */
+  markerGrabPx: 30,
+} as const;
+
+/** Flight animation (cosmetic only — the outcome is already decided). */
+export const FLIGHT_ANIM = {
+  /** Ball speed through the air, hexes per second. */
+  hexesPerSec: 13,
+  /** Roll-out speed, hexes per second. */
+  rollHexesPerSec: 5,
+  /** Pause after the ball stops before the scene returns to traverse. */
+  settleMs: 350,
+  /** Ball radius on the map (world px) and the scale added per level of height. */
+  ballRadius: 4.5,
+  heightScale: 0.12,
+} as const;

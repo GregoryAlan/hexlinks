@@ -9,6 +9,13 @@ import type { PointerEvt } from '../scenes/sceneManager';
  *  centroid motion pans); a short still press is a tap. Wheel maps to zoom. */
 
 export interface GestureCallbacks {
+  /** Consulted on a first pointer-down. Returning true makes that pointer a
+   *  captured drag (onDragStart/onDrag/onDragEnd) that never taps or pans —
+   *  how the aim marker is grabbed without fighting the camera. */
+  shouldCapture?(pos: Vec2): boolean;
+  onDragStart?(pos: Vec2): void;
+  onDrag?(pos: Vec2): void;
+  onDragEnd?(pos: Vec2): void;
   onTap?(pos: Vec2): void;
   onPan?(delta: Vec2): void;
   onPinch?(center: Vec2, factor: number): void;
@@ -27,6 +34,7 @@ export class GestureRecognizer {
   private panning = false;
   private lastCentroid: Vec2 | null = null;
   private lastDist = 0;
+  private captured: number | null = null;
 
   constructor(private cb: GestureCallbacks) {}
 
@@ -38,6 +46,8 @@ export class GestureRecognizer {
     this.pointers.clear();
     this.panning = false;
     this.lastCentroid = null;
+    this.lastDist = 0;
+    this.captured = null;
   }
 
   handle(e: PointerEvt, nowMs: number): void {
@@ -48,8 +58,22 @@ export class GestureRecognizer {
       return;
     }
     const id = e.id ?? 0;
+    if (this.captured !== null) {
+      if (id !== this.captured) return; // extra fingers are ignored during a captured drag
+      if (e.type === 'move') this.cb.onDrag?.(e.pos);
+      else if (e.type === 'up' || e.type === 'cancel') {
+        this.captured = null;
+        this.cb.onDragEnd?.(e.pos);
+      }
+      return;
+    }
     switch (e.type) {
       case 'down': {
+        if (this.pointers.size === 0 && this.cb.shouldCapture?.(e.pos)) {
+          this.captured = id;
+          this.cb.onDragStart?.(e.pos);
+          return;
+        }
         this.pointers.set(id, { start: { ...e.pos }, cur: { ...e.pos }, t0: nowMs });
         this.syncMulti();
         break;

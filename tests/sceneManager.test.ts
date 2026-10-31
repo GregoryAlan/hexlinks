@@ -11,7 +11,7 @@ import {
 
 /** Headless scene-flow tests with a stub context — no DOM, no canvas. */
 
-const stubOverlay: OverlayHost = { show() {}, clear() {}, hud() {} };
+const stubOverlay: OverlayHost = { show() {}, clear() {}, hud() {}, panel() {} };
 const view: SceneView = { width: 100, height: 100 };
 
 class SpyScene implements Scene {
