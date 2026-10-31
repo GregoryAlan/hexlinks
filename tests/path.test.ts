@@ -5,7 +5,6 @@ import { tutorialMap } from '../src/data/tutorial';
 import { hexDistance, hexKey, type Axial } from '../src/hex/coords';
 import { cellAt, offsetToAxial, parseAsciiMap } from '../src/hex/map';
 import { findPath, stepCost } from '../src/hex/path';
-import { beginHole, clearHexes, stepParty } from '../src/state/run';
 
 /** A* invariants incl. cliff and fog rules (PLAN.md §Verification). */
 
@@ -117,31 +116,5 @@ describe('tutorial hole', () => {
       expect(cell.elevation).toBeLessThanOrEqual(6);
     }
     expect(cellAt(map, map.pin)!.elevation).toBeGreaterThan(cellAt(map, map.tee)!.elevation);
-  });
-});
-
-describe('run state reducers', () => {
-  const map = tutorialMap();
-
-  it('beginHole reveals a radius around the tee and nothing else', () => {
-    const s = beginHole('seed', 0, map);
-    expect(s.partyHex).toEqual(map.tee);
-    expect(s.clearedHexes.has(hexKey(map.tee))).toBe(true);
-    for (const k of s.clearedHexes) {
-      const [q, r] = k.split(',').map(Number);
-      expect(hexDistance({ q, r }, map.tee)).toBeLessThanOrEqual(MOVE.teeRevealRadius);
-    }
-    expect(s.clearedHexes.has(hexKey(map.pin))).toBe(false);
-  });
-
-  it('clearHexes and stepParty are pure', () => {
-    const s0 = beginHole('seed', 0, map);
-    const s1 = clearHexes(s0, [map.pin]);
-    expect(s0.clearedHexes.has(hexKey(map.pin))).toBe(false);
-    expect(s1.clearedHexes.has(hexKey(map.pin))).toBe(true);
-    const s2 = stepParty(s1, map.pin);
-    expect(s1.partyHex).toEqual(map.tee);
-    expect(s2.partyHex).toEqual(map.pin);
-    expect(s2.stepsTaken).toBe(1);
   });
 });

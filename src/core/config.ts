@@ -210,3 +210,107 @@ export const ISO_COLORS = {
   fogMist: '#2b2822',
   pathMark: '#7d2a24',
 } as const;
+
+// ---- v2: the Swing (pure shot model) ------------------------------------------
+
+/** Clubs. Distances are in hexes (centre to centre), apex heights in
+ *  elevation levels — the same units the heightfield uses, so a ridge check
+ *  is a plain comparison. `dispersion` is the lateral miss in hexes at a
+ *  full-width accuracy error; `sweetSpotWidth` scales the meter's sweet band.
+ *  `loft 0` marks a ground shot (putter): the ball rolls, never flies. [T] */
+export const CLUBS = {
+  driver: { name: 'Driver', maxCarry: 12, loft: 2.0, rollFactor: 3.0, dispersion: 1.6, sweetSpotWidth: 0.8, shapes: ['standard', 'punch'], price: 0 },
+  hybrid: { name: 'Hybrid', maxCarry: 10, loft: 2.5, rollFactor: 2.0, dispersion: 1.3, sweetSpotWidth: 0.9, shapes: ['standard', 'punch'], price: 12 },
+  iron: { name: 'Iron', maxCarry: 8, loft: 3.0, rollFactor: 1.5, dispersion: 1.0, sweetSpotWidth: 1.0, shapes: ['standard', 'punch', 'bumpRun'], price: 0 },
+  wedge: { name: 'Wedge', maxCarry: 5, loft: 4.0, rollFactor: 0.5, dispersion: 0.7, sweetSpotWidth: 1.1, shapes: ['standard', 'flop', 'bumpRun'], price: 0 },
+  lobWedge: { name: 'Lob wedge', maxCarry: 3.5, loft: 5.5, rollFactor: 0, dispersion: 0.6, sweetSpotWidth: 1.0, shapes: ['standard', 'flop'], price: 10 },
+  putter: { name: 'Putter', maxCarry: 4, loft: 0, rollFactor: 0, dispersion: 0.35, sweetSpotWidth: 1.3, shapes: ['standard'], price: 0 },
+} as const;
+
+/** Starting bag. */
+export const START_BAG = ['driver', 'iron', 'wedge', 'putter'] as const;
+
+/** Shot shapes multiply the club. `apex` scales loft (how high the arc
+ *  goes), `range` the carry, `roll` the roll-out, `disp` the dispersion,
+ *  `canopyStrike` the chance a tree hex under the flight catches the ball.
+ *  bumpRun is a ground shot like the putter. [T] */
+export const SHAPES = {
+  standard: { range: 1.0, apex: 1.0, roll: 1.0, disp: 1.0, canopyStrike: 0.4 },
+  punch: { range: 0.85, apex: 0.5, roll: 1.8, disp: 0.9, canopyStrike: 0.1 },
+  flop: { range: 0.6, apex: 1.8, roll: 0, disp: 1.3, canopyStrike: 0.5 },
+  bumpRun: { range: 0.8, apex: 0, roll: 1.0, disp: 0.8, canopyStrike: 0 },
+} as const;
+
+export const SPIN = {
+  /** Back spin ×(1−rollDelta) roll, top spin ×(1+rollDelta). */
+  rollDelta: 0.5,
+  /** Draw/fade: lateral curve in hexes at the end of a full carry
+   *  (quadratic in flight fraction, so it bends late). */
+  curveHexes: 1.5,
+  /** Shaping the shot narrows the meter's sweet band (step 2). */
+  curveSweetMult: 0.7,
+} as const;
+
+/** Lie table by the terrain the ball sits on. `carry` and `disp` multiply
+ *  the club; `sweep`/`sweet` reach the meter in step 2; `bannedClubs` can't
+ *  be selected from that lie; `noise` is the seeded lie-noise amplitude in
+ *  hexes (small — the meter is the main source of error). [T] */
+export const LIE = {
+  tee: { carry: 1.0, disp: 0.75, sweep: 1.0, sweet: 1.1, noise: 0.1, bannedClubs: [] },
+  fairway: { carry: 1.0, disp: 1.0, sweep: 1.0, sweet: 1.0, noise: 0.15, bannedClubs: [] },
+  green: { carry: 1.0, disp: 1.0, sweep: 1.0, sweet: 1.0, noise: 0.1, bannedClubs: ['driver'] },
+  cartPath: { carry: 1.0, disp: 1.3, sweep: 1.1, sweet: 0.9, noise: 0.3, bannedClubs: [] },
+  rough: { carry: 0.85, disp: 1.4, sweep: 1.15, sweet: 0.8, noise: 0.3, bannedClubs: [] },
+  deepRough: { carry: 0.65, disp: 1.9, sweep: 1.3, sweet: 0.6, noise: 0.4, bannedClubs: ['driver', 'hybrid'] },
+  sand: { carry: 0.7, disp: 1.6, sweep: 1.2, sweet: 0.7, noise: 0.35, bannedClubs: ['driver', 'hybrid', 'putter'] },
+  trees: { carry: 0.5, disp: 2.0, sweep: 1.3, sweet: 0.6, noise: 0.4, bannedClubs: ['driver', 'hybrid', 'putter'] },
+  water: { carry: 0, disp: 1, sweep: 1, sweet: 1, noise: 0, bannedClubs: [] },
+  oob: { carry: 0, disp: 1, sweep: 1, sweet: 1, noise: 0, bannedClubs: [] },
+} as const;
+
+/** Roll-out multiplier by the terrain the ball lands on. 0 kills roll. */
+export const ROLL_MULT = {
+  tee: 1.0,
+  fairway: 1.0,
+  green: 1.3,
+  cartPath: 1.6,
+  rough: 0.4,
+  deepRough: 0,
+  sand: 0,
+  trees: 0,
+  water: 0,
+  oob: 0,
+} as const;
+
+/** Flight model (`shot/ballistics.ts`). The arc is a parabola in (hexes
+ *  along the line, elevation levels up); it keeps flying past the intended
+ *  carry until it meets ground, so downhill shots run long and uphill ones
+ *  land short with no fudge constants. */
+export const BALLISTICS = {
+  /** Flight samples per hex of carry (≥4 keeps the corridor contiguous on
+   *  diagonals). */
+  samplesPerHex: 4,
+  /** Apex at zero power is this fraction of the full-power apex. */
+  apexFloor: 0.4,
+  /** Descending into a face more than this far below the cell top is a
+   *  ridge strike (ball drops back), not a landing. */
+  faceStrikeLevels: 0.6,
+  /** Flight before this fraction of the carry can't strike (it's leaving
+   *  its own hex). */
+  minStrikeS: 0.12,
+  /** Tree hexes: canopy spans from `trunkLevels` to `canopyLevels` above
+   *  the cell; below the trunk line a punch sneaks under. */
+  trunkLevels: 0.8,
+  canopyLevels: 2.2,
+  /** Hard cap on roll-out hexes. */
+  maxRoll: 6,
+  /** Fog cleared either side of the flight + roll path (hex radius). */
+  clearRadius: 1,
+  /** Ground shots (putter, bumpRun): max levels climbable per hex entered;
+   *  each level climbed eats this many hexes of run. */
+  groundMaxClimb: 1,
+  groundClimbCost: 1,
+  /** Wind drift in hexes per unit wind per level of apex (per day wind
+   *  magnitude is rolled in [0, maxWind]). */
+  maxWind: 0.25,
+} as const;

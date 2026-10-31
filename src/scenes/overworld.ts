@@ -10,7 +10,7 @@ import { GestureRecognizer } from '../input/gestures';
 import { Camera } from '../render/camera';
 import { HexRenderer, spriteBBox, type FaceStyle, type LayerBake } from '../render/hexRenderer';
 import { seedFrom } from '../render/roughCache';
-import { beginHole, clearHexes, isCleared, stepParty, type RunState } from '../state/run';
+import { beginRun, clearHexes, isCleared, stepParty, type RunState } from '../state/run';
 import type { PointerEvt, Scene, SceneContext, SceneResult, SceneView } from './sceneManager';
 
 /** P1 overworld: walk the iso hex course. Traverse mode only — tap a hex to
@@ -59,7 +59,7 @@ export class OverworldScene implements Scene {
 
   constructor(req: OverworldRequest) {
     this.map = req.map;
-    this.run = req.run ?? beginHole(req.map.seed, 0, req.map);
+    this.run = req.run ?? beginRun(req.map.seed, req.map);
     if (req.fogOff) this.run = clearHexes(this.run, [...req.map.cells.values()].map((c) => c.coord));
     this.renderer = new HexRenderer(req.map, { faceStyle: req.faceStyle ?? 'flat' });
     this.camera = new Camera(axialToIso(this.run.partyHex, cellAt(this.map, this.run.partyHex)!.elevation), req.zoom ?? 0.9);
