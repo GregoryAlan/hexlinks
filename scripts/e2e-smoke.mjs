@@ -59,9 +59,25 @@ await page.click('[data-club="iron"]');
 await page.waitForTimeout(200);
 await page.screenshot({ path: `${scratch}/s1b-aim.png` });
 await page.click('[data-action="swing"]');
-await page.waitForTimeout(600);
+await page.waitForTimeout(150);
+s = await state();
+console.log('swing mode', s.mode, 'meter', s.meter, 'sweepMs', s.sweepMs);
+if (s.mode !== 'swing') errors.push(`expected swing mode, got ${s.mode}`);
+// 3-tap meter: power tap near the top of the sweep, accuracy tap when the
+// needle is back on the line (power × sweep later).
+const sweep = s.sweepMs ?? 1100;
+await page.waitForTimeout(sweep * 0.85 - 150);
+await page.mouse.click(cx + 60, cy - 200);
+await page.waitForTimeout(80);
+s = await state();
+console.log('after power tap, meter', s.meter);
+await page.screenshot({ path: `${scratch}/s2-meter.png` });
+await page.waitForTimeout(sweep * 0.85 - 80 - 40);
+await page.mouse.click(cx + 60, cy - 200);
+await page.waitForTimeout(400);
 s = await state();
 console.log('mid-flight mode', s.mode);
+if (s.mode !== 'flight') errors.push(`expected flight after two meter taps, got ${s.mode}`);
 await page.screenshot({ path: `${scratch}/s1b-flight.png` });
 await page.waitForTimeout(3500);
 s = await state();

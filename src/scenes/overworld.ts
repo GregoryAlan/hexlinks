@@ -1,6 +1,6 @@
 import rough from 'roughjs';
 import type { RoughCanvas } from 'roughjs/bin/canvas';
-import { AIM, BALLISTICS, COLORS, FLIGHT_ANIM, HEX, ISO_COLORS, MOVE, TERRAIN_MOVE_COST } from '../core/config';
+import { AIM, BALLISTICS, COLORS, FLIGHT_ANIM, HEX, ISO_COLORS, METER, MOVE, TERRAIN_MOVE_COST } from '../core/config';
 import { DEBUG } from '../core/debug';
 import { makeRng } from '../core/rng';
 import type { Vec2 } from '../core/types';
@@ -12,7 +12,9 @@ import { GestureRecognizer } from '../input/gestures';
 import { Camera } from '../render/camera';
 import { HexRenderer, spriteBBox, type FaceStyle, type LayerBake } from '../render/hexRenderer';
 import { seedFrom } from '../render/roughCache';
-import { dispersionHexes, distHexes, HEX_W, lieOf, powerFor, predictShot, resolveShot } from '../shot/ballistics';
+import { drawMeter } from '../render/meterHud';
+import { dispersionHexes, distHexes, flatDir, HEX_W, lieOf, powerFor, predictShot, resolveShot, sideSlope } from '../shot/ballistics';
+import { meterConfigFor, meterStart, meterTap, meterTick, type MeterConfig, type MeterState } from '../shot/meter';
 import { NO_SPIN, NO_WIND, toRecord, type ClubId, type ShotInput, type ShotOutcome, type ShotShape, type Spin } from '../shot/types';
 import { applyShot, beginRun, clearHexes, isCleared, shotSeed, stepParty, type RunState } from '../state/run';
 import type { PointerEvt, Scene, SceneContext, SceneResult, SceneView } from './sceneManager';
@@ -24,7 +26,9 @@ import type { PointerEvt, Scene, SceneContext, SceneResult, SceneView } from './
  *    the ball should finish. Panning is still free — aim is tap-to-target.
  *  - flight: the resolved shot animates along its samples; a tap skips.
  *  - holed: hole-out card.
- *  Step 1b uses an auto-perfect swing; the 3-tap meter arrives in step 2. */
+ *  - swing: the 3-tap meter (raw pointer-downs, not gestures — tap latency
+ *    matters); power then accuracy, lie and side-slope shape the band.
+ *  The pure model is in shot/; this scene only sequences and draws. */
 
 export interface OverworldRequest {
   map: HoleMap;
@@ -49,6 +53,7 @@ interface Walk {
 type Mode =
   | { kind: 'traverse' }
   | { kind: 'aim'; club: ClubId; shape: ShotShape; spin: Spin; target: Axial | null; dragging: boolean }
+  | { kind: 'swing'; input: Omit<ShotInput, 'swing'>; meter: MeterState; cfg: MeterConfig; targetPower: number }
   | { kind: 'flight'; outcome: ShotOutcome; t: number; done: boolean; anim: FlightAnim }
   | { kind: 'holed' };
 
@@ -81,6 +86,8 @@ export class OverworldScene implements Scene {
   private bag: ClubId[] = startBag();
   private aimPreview: ShotOutcome | null = null;
   private aimPreviewKey = '';
+  /** The finished meter lingers over the start of the flight. */
+  private lastMeter: { cfg: MeterConfig; state: MeterState; targetPower: number; club: string; until: number } | null = null;
 
   constructor(req: OverworldRequest) {
     this.map = req.map;
@@ -177,9 +184,15 @@ export class OverworldScene implements Scene {
             this.setAim({ spin: { ...m.spin, [k]: Number(v) } as Spin });
           }),
         );
-        root.querySelector('[data-action="swing"]')?.addEventListener('click', () => this.swing());
+        root.querySelector('[data-action="swing"]')?.addEventListener('click', () => this.startSwing());
         root.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.leaveAim());
       });
+    }
+    if (m.kind === 'swing') {
+      return this.ctx.overlay.panel(
+        `<div class="row"><span class="hint">Tap anywhere: once for power, once on the line.</span><button data-action="cancel">Cancel</button></div>`,
+        (root) => root.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.cancelSwing()),
+      );
     }
     if (m.kind === 'flight') return this.ctx.overlay.panel(`<div class="hint">Tap to skip</div>`);
     this.ctx.overlay.panel('');
@@ -246,10 +259,32 @@ export class OverworldScene implements Scene {
     this.aimPreview = predictShot(input, this.map);
   }
 
-  private swing(): void {
-    const input = this.aimInput();
-    if (!input) return;
+  private startSwing(): void {
+    const full = this.aimInput();
+    if (!full || this.mode.kind !== 'aim') return;
+    const { swing, ...input } = full;
+    const lie = lieOf(this.map, input.from);
+    const slope = sideSlope(this.map, input.from, flatDir(input.from, input.target));
+    const cfg = meterConfigFor(clubDef(input.club), lie, slope, input.spin);
+    this.mode = { kind: 'swing', input, meter: meterStart(this.clock), cfg, targetPower: swing.power };
+    this.gestures.reset();
+    this.refreshUi();
+  }
+
+  private cancelSwing(): void {
+    if (this.mode.kind !== 'swing') return;
+    const i = this.mode.input;
+    this.mode = { kind: 'aim', club: i.club, shape: i.shape, spin: i.spin, target: i.target, dragging: false };
+    this.refreshPreview();
+    this.refreshUi();
+  }
+
+  private commitSwing(): void {
+    const m = this.mode;
+    if (m.kind !== 'swing' || m.meter.phase !== 'done') return;
+    const input: ShotInput = { ...m.input, swing: m.meter.result };
     const outcome = resolveShot(input, this.map, makeRng(shotSeed(this.run)));
+    this.lastMeter = { cfg: m.cfg, state: m.meter, targetPower: m.targetPower, club: clubDef(m.input.club).name, until: this.clock + METER.lingerMs };
     this.mode = { kind: 'flight', outcome, t: 0, done: false, anim: this.buildAnim(outcome) };
     this.aimPreview = null;
     this.gestures.reset();
@@ -343,6 +378,13 @@ export class OverworldScene implements Scene {
   // ---- input ---------------------------------------------------------------------------
 
   handlePointer(e: PointerEvt): void {
+    if (this.mode.kind === 'swing') {
+      if (e.type === 'down') {
+        this.mode.meter = meterTap(this.mode.cfg, this.mode.meter, this.clock);
+        if (this.mode.meter.phase === 'done') this.commitSwing();
+      }
+      return;
+    }
     this.gestures.handle(e, this.clock);
     if (e.type === 'move' && this.gestures.pointerCount === 0) {
       this.hover = this.pick(e.pos);
@@ -435,6 +477,10 @@ export class OverworldScene implements Scene {
       }
       this.camera.follow(this.partyIso());
     }
+    if (this.mode.kind === 'swing') {
+      this.mode.meter = meterTick(this.mode.cfg, this.mode.meter, this.clock);
+      if (this.mode.meter.phase === 'done') this.commitSwing();
+    }
     if (this.mode.kind === 'flight') {
       const m = this.mode;
       m.t += dtMs;
@@ -501,6 +547,12 @@ export class OverworldScene implements Scene {
     this.drawHover(g);
 
     g.restore();
+
+    // Screen-space HUD: the swing meter (live, then lingering over the flight).
+    const m = this.mode;
+    if (m.kind === 'swing') drawMeter(g, view, m.cfg, m.meter, this.clock, m.targetPower, clubDef(m.input.club).name);
+    else if (m.kind === 'flight' && this.lastMeter && this.clock < this.lastMeter.until)
+      drawMeter(g, view, this.lastMeter.cfg, this.lastMeter.state, this.clock, this.lastMeter.targetPower, this.lastMeter.club);
   }
 
   private drawPathPreview(g: CanvasRenderingContext2D): void {
@@ -538,7 +590,7 @@ export class OverworldScene implements Scene {
    *  the fog so fogged ground stays fogged (the ring is the promise, not a
    *  reveal). */
   private drawAimPreview(g: CanvasRenderingContext2D): void {
-    const m = this.mode;
+    const m = this.mode.kind === 'swing' ? { kind: 'aim' as const, ...this.mode.input, dragging: false } : this.mode;
     const o = this.aimPreview;
     if (m.kind !== 'aim' || !o || !m.target) return;
     g.save();
@@ -590,7 +642,7 @@ export class OverworldScene implements Scene {
   }
 
   private drawAimMarker(g: CanvasRenderingContext2D): void {
-    const m = this.mode;
+    const m = this.mode.kind === 'swing' ? { kind: 'aim' as const, target: this.mode.input.target, dragging: false } : this.mode;
     if (m.kind !== 'aim' || !m.target) return;
     const p = axialToIso(m.target, cellAt(this.map, m.target)!.elevation);
     g.save();
@@ -729,7 +781,7 @@ export class OverworldScene implements Scene {
   }
 
   private drawHover(g: CanvasRenderingContext2D): void {
-    if (!this.hover || this.mode.kind === 'flight') return;
+    if (!this.hover || this.mode.kind === 'flight' || this.mode.kind === 'swing') return;
     const cell = cellAt(this.map, this.hover);
     if (!cell) return;
     const f = this.renderer.faces(cell);
@@ -758,7 +810,9 @@ export class OverworldScene implements Scene {
       holed: this.run.holed,
       cleared: this.run.clearedHexes.size,
       claimed: this.run.claimedHexes.size,
-      target: m.kind === 'aim' && m.target ? hexKey(m.target) : null,
+      target: m.kind === 'aim' && m.target ? hexKey(m.target) : m.kind === 'swing' ? hexKey(m.input.target) : null,
+      meter: m.kind === 'swing' ? m.meter.phase : null,
+      sweepMs: m.kind === 'swing' ? m.cfg.sweepMs : null,
       zoom: this.camera.zoom,
       center: { ...this.camera.center },
       walking: this.walk !== null,

@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`swing meter > golden table of tap pairs per lie 1`] = `
+{
+  "fairway": {
+    "accuracy": -1,
+    "power": 0.636,
+  },
+  "rough": {
+    "accuracy": -1,
+    "power": 0.732,
+  },
+  "sand": {
+    "accuracy": -1,
+    "power": 0.764,
+  },
+  "tee": {
+    "accuracy": -1,
+    "power": 0.636,
+  },
+}
+`;

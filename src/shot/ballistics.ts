@@ -27,6 +27,18 @@ export function distHexes(a: Axial, b: Axial): number {
   return Math.hypot(fb.x - fa.x, fb.y - fa.y) / HEX_W;
 }
 
+/** Side-slope across the aim line at a hex, in levels (positive = ground
+ *  rises to the left of the line). Read off the two neighbours either side
+ *  of the line — what shifts the meter's zero line. */
+export function sideSlope(map: HoleMap, h: Axial, dir: Vec2): number {
+  const f = axialToFlat(h);
+  const perp = { x: -dir.y, y: dir.x };
+  const here = cellAt(map, h)?.elevation ?? 0;
+  const left = cellAt(map, flatToAxial({ x: f.x + perp.x * HEX_W, y: f.y + perp.y * HEX_W }))?.elevation ?? here;
+  const right = cellAt(map, flatToAxial({ x: f.x - perp.x * HEX_W, y: f.y - perp.y * HEX_W }))?.elevation ?? here;
+  return (left - right) / 2;
+}
+
 export function lieOf(map: HoleMap, h: Axial): TerrainKind {
   return cellAt(map, h)?.terrain ?? 'oob';
 }

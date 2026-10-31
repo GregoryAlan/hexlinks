@@ -334,3 +334,23 @@ export const FLIGHT_ANIM = {
   ballRadius: 4.5,
   heightScale: 0.12,
 } as const;
+
+/** The 3-tap swing meter (`shot/meter.ts`). Power phase: the needle sweeps
+ *  0→1→0 and the tap sets power. Accuracy phase: the needle runs back down
+ *  from the power mark toward the zero line at the same speed; tap on the
+ *  line for a pure strike, early = push (positive error), late = pull. */
+export const METER = {
+  /** ms for one 0→1 sweep on a fairway lie (lie `sweep` divides this). */
+  sweepMs: 1100,
+  /** Half-width of the pure band in needle units on a fairway lie with a
+   *  neutral club — scaled by club.sweetSpotWidth and LIE.sweet. */
+  sweetHalfWidth: 0.07,
+  /** Needle units the zero line shifts per level of side-slope. */
+  slopeShiftPerLevel: 0.08,
+  /** Below zero-line − this, the swing auto-resolves as a full pull. */
+  overshoot: 0.3,
+  /** Power floor so a frantic double-tap still moves the ball. */
+  minPower: 0.08,
+  /** How long the finished meter lingers over the flight (ms). */
+  lingerMs: 900,
+} as const;
